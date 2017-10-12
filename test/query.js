@@ -36,9 +36,11 @@ describe('query.js', function () {
     }
     assert.deepEqual(error, {
       model: 'User',
-      plugin: 'oops',
-      type: 'afterFind',
-      args: [],
+      op: 'find',
+      args: [ {}, { fields: { _id: 0 } } ],
+      pluginName: 'oops',
+      pluginArgs: [],
+      pluginOp: 'afterFind',
       result: [
         { name: 'aaa', age: 2 },
         { name: 'bbb', age: 1 }

@@ -1,3 +1,37 @@
+## 3.1.5/2017-08-29
+
+- fix #27
+
+## 3.1.4/2017-08-20
+
+- fix test coverage
+
+## 3.1.3/2017-08-19
+
+- tweak error
+
+## 3.1.2/2017-08-19
+
+- add error type
+- update another-json-schema@2.1.1
+
+## 3.1.1/2017-08-19
+
+- tweak error stack
+
+## 3.1.0/2017-08-19
+
+- tweak error stack
+- update README
+
+## 3.0.0/2017-08-18
+
+- breaking: remove `bluebird`, `exec` only return promise now
+- update deps
+- remove GreenKeeper
+- remove yarn.lock
+- use yield -> yield*
+
 ## 2.4.5/2017-03-20
 
 - add greenkeeper
