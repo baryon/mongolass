@@ -1,186 +1,219 @@
-'use strict';
+const MONGODB = process.env.MONGODB || 'mongodb://localhost:27017/test'
 
-const MONGODB = process.env.MONGODB || 'mongodb://localhost:27017/test';
-
-const assert = require('assert');
-const Mongolass = require('..');
-const Db = Mongolass.Db;
-const Schema = Mongolass.Schema;
-const Model = Mongolass.Model;
-const mongolass = new Mongolass(MONGODB);
+const _ = require('lodash')
+const assert = require('assert')
+const Mongolass = require('..')
+const Db = Mongolass.Db
+const Schema = Mongolass.Schema
+const Model = Mongolass.Model
+const mongolass = new Mongolass(MONGODB)
 
 describe('index.js', function () {
-  before(function* () {
-    yield mongolass.model('User').insertOne({ name: 'aaa', age: 2 });
-    yield mongolass.model('User').insertOne({ name: 'bbb', age: 1 });
-  });
+  beforeEach(function * () {
+    yield mongolass.model('User').insertOne({ name: 'aaa', age: 2 })
+    yield mongolass.model('User').insertOne({ name: 'bbb', age: 1 })
+  })
 
-  after(function* () {
-    yield mongolass.model('User').remove();
-    mongolass.disconnect();
-  });
+  afterEach(function * () {
+    yield mongolass.model('User').deleteMany()
+  })
 
-  it('connect', function* () {
-    let error;
-    let db = yield mongolass.connect();
-    assert.ok(db instanceof Db);
+  after(function * () {
+    yield mongolass.disconnect()
+  })
 
-    let db2 = yield mongolass.connect();
-    assert.ok(db instanceof Db);
-    assert.ok(db === db2);
+  it('connect', function * () {
+    let error
+    let db = yield mongolass.connect()
+    assert.ok(db instanceof Db)
+
+    let db2 = yield mongolass.connect()
+    assert.ok(db instanceof Db)
+    assert.ok(db === db2)
 
     try {
-      yield mongolass.connect('mongodb://localhost:27018/test');
+      yield mongolass.connect('mongodb://localhost:27018/test')
     } catch (e) {
-      error = e;
+      error = e
     }
-    assert.deepEqual(error.message, 'Already connected to ' + MONGODB + ', please create another connection.');
-  });
+    assert.deepEqual(error.message, 'Already connected to ' + MONGODB + ', please create another connection.')
+  })
 
-  it('connect failed', function* () {
-    let error;
-    const mongolass2 = new Mongolass('mongodb://localhost:27018/test');
+  // it('connect with auth', function * () {
+  //   const mongolass2 = new Mongolass('mongodb://admin:123456@ds247587.mlab.com:47587/mongolass')
+
+  //   const User = mongolass2.model('User')
+  //   const name = Date.now()
+
+  //   yield User.insert({ name })
+  //   const user = yield User.findOne({ name })
+  //   assert.ok(user)
+  //   assert.ok(user._id)
+  //   assert.deepEqual(user.name, name)
+
+  //   yield mongolass2.disconnect()
+  // })
+
+  it('connect failed', function * () {
+    let error
+    const mongolass2 = new Mongolass('mongodb://localhost:27018/test')
     try {
-      yield mongolass2.model('User').find();
+      yield mongolass2.model('User').find()
     } catch (e) {
-      error = e;
+      error = e
     }
     assert.deepEqual(error, {
-      name: 'MongoError',
-      message: 'failed to connect to server [localhost:27018] on first connect [MongoError: connect ECONNREFUSED 127.0.0.1:27018]',
+      name: 'MongoNetworkError',
+      message: 'failed to connect to server [localhost:27018] on first connect [MongoNetworkError: connect ECONNREFUSED 127.0.0.1:27018]',
       op: 'find',
       args: [],
       model: 'User',
       schema: null
-    });
-  });
+    })
+  })
 
-  it('disconnect', function* () {
-    let mongolass2 = new Mongolass();
-    yield mongolass2.connect(MONGODB);
-    mongolass2.disconnect();
-    assert.deepEqual(mongolass2._db, null);
-    assert.deepEqual(mongolass2._conn, null);
+  it('disconnect', function * () {
+    let mongolass2 = new Mongolass()
+    yield mongolass2.connect(MONGODB)
+    yield mongolass2.disconnect()
+    assert.deepEqual(mongolass2._client, null)
+    assert.deepEqual(mongolass2._db, null)
 
-    let mongolass3 = new Mongolass(MONGODB);
-    yield mongolass3.connect();
-    mongolass3.disconnect();
-    assert.deepEqual(mongolass3._db, null);
-    assert.deepEqual(mongolass3._conn, null);
+    let mongolass3 = new Mongolass(MONGODB)
+    yield mongolass3.connect()
+    yield mongolass3.disconnect()
+    assert.deepEqual(mongolass3._client, null)
+    assert.deepEqual(mongolass3._db, null)
 
-    let mongolass4 = new Mongolass(MONGODB);
-    mongolass4.disconnect();
-  });
+    let mongolass4 = new Mongolass(MONGODB)
+    yield mongolass4.disconnect()
+  })
 
-  it('schema', function* () {
-    let UserSchema;
-    let error;
-
-    try {
-      UserSchema = mongolass.schema({ name: 'string' });
-    } catch(e) {
-      error = e;
-    }
-    assert.deepEqual(error.message, 'Missing schema name');
+  it('schema', function * () {
+    let UserSchema
+    let error
 
     try {
-      UserSchema = mongolass.schema('User', 'aaa');
-    } catch(e) {
-      error = e;
+      UserSchema = mongolass.schema({ name: 'string' })
+    } catch (e) {
+      error = e
     }
-    assert.deepEqual(error.message, 'Wrong schemaJSON for schema: User');
+    assert.deepEqual(error.message, 'Missing schema name')
+
+    try {
+      UserSchema = mongolass.schema('User', 'aaa')
+    } catch (e) {
+      error = e
+    }
+    assert.deepEqual(error.message, 'Wrong schemaJSON for schema: User')
 
     UserSchema = mongolass.schema('User', {
       name: { type: 'string' },
       age: { type: 'number', range: [0, 100] }
-    });
-    assert.ok(UserSchema._schema._id);
-    assert.ok(UserSchema instanceof Schema);
-    assert.ok(UserSchema === mongolass.schema('User'));
+    })
+    assert.ok(UserSchema._schema._id)
+    assert.ok(UserSchema instanceof Schema)
+    assert.ok(UserSchema === mongolass.schema('User'))
 
     UserSchema = new Schema('User', {
       name: { type: 'string' },
       age: { type: 'number', range: [0, 100] }
-    });
-    assert.ok(UserSchema._schema._id);
-    assert.ok(UserSchema instanceof Schema);
+    })
+    assert.ok(UserSchema._schema._id)
+    assert.ok(UserSchema instanceof Schema)
 
     try {
-      UserSchema = mongolass.schema('User2');
-    } catch(e) { error = e; }
-    assert.deepEqual(error.message, 'No schema: User2');
-  });
+      UserSchema = mongolass.schema('User2')
+    } catch (e) { error = e }
+    assert.deepEqual(error.message, 'No schema: User2')
+  })
 
-  it('model', function* () {
-    let User;
-    let User2;
-    let error;
+  it('model', function * () {
+    let User
+    let User2
+    let error
     let UserSchema = mongolass.schema('User', {
       name: { type: 'string' },
       age: { type: 'number', range: [0, 100] }
-    });
+    })
 
     try {
-      User = mongolass.model(UserSchema);
-    } catch(e) {
-      error = e;
+      User = mongolass.model(UserSchema)
+    } catch (e) {
+      error = e
     }
-    assert.deepEqual(error.message, 'Missing model name');
+    assert.deepEqual(error.message, 'Missing model name')
 
     try {
-      User = mongolass.model('User', 'aaa');
-    } catch(e) {
-      error = e;
+      User = mongolass.model('User', 'aaa')
+    } catch (e) {
+      error = e
     }
-    assert.deepEqual(error.message, 'Wrong schemaJSON for schema: UserSchema');
+    assert.deepEqual(error.message, 'Wrong schemaJSON for schema: UserSchema')
 
-    User = mongolass.model('User', UserSchema);
-    assert.ok(User instanceof Model);
-    assert.ok(User === mongolass.model('User'));
-    assert.ok(User._schema._name === 'User');
+    User = mongolass.model('User', UserSchema)
+    assert.ok(User instanceof Model)
+    assert.ok(User === mongolass.model('User'))
+    assert.ok(User._schema._name === 'User')
 
     User2 = mongolass.model('User', {
       name: { type: 'string' },
       age: { type: 'number', range: [0, 100] }
-    });
-    assert.ok(User !== User2);
-    assert.ok(User2 instanceof Model);
-    assert.ok(User2 === mongolass.model('User'));
-    assert.ok(User2._schema._name === 'UserSchema');
-  });
+    })
+    assert.ok(User !== User2)
+    assert.ok(User2 instanceof Model)
+    assert.ok(User2 === mongolass.model('User'))
+    assert.ok(User2._schema._name === 'UserSchema')
+  })
 
-  it('plugin', function* () {
-    let error;
-    let User = mongolass.model('User');
+  it('plugin', function * () {
+    let error
+    let User = mongolass.model('User')
     try {
-      mongolass.plugin('filter', function (result, key) {
+      mongolass.plugin('map', function (result, key) {
         return result.map(function (item) {
-          return item[key];
-        });
-      });
-    } catch(e) {
-      error = e;
+          return item[key]
+        })
+      })
+    } catch (e) {
+      error = e
     }
-    assert.deepEqual(error.message, 'Wrong plugin name or hooks');
+    assert.deepEqual(error.message, 'Wrong plugin name or hooks')
 
-    mongolass.plugin('filter', {
+    mongolass.plugin('map', {
       afterFind: function (result, key) {
         return result.map(function (item) {
-          return item[key];
-        });
+          return item[key]
+        })
       }
-    });
+    })
     mongolass.plugin('idToString', {
       afterFind: function (ids) {
         return ids.map(function (id) {
-          return id.toString();
-        });
+          return id.toString()
+        })
       }
-    });
-    let usernames = yield User.find().filter('_id').idToString();
-    assert.deepEqual(usernames[0].length, 24);
-    assert.deepEqual(usernames[1].length, 24);
-    assert.deepEqual(typeof usernames[0], 'string');
-    assert.deepEqual(typeof usernames[1], 'string');
-  });
-});
+    })
+    let usernames = yield User.find().map('_id').idToString()
+    assert.deepEqual(usernames[0].length, 24)
+    assert.deepEqual(usernames[1].length, 24)
+    assert.deepEqual(typeof usernames[0], 'string')
+    assert.deepEqual(typeof usernames[1], 'string')
+  })
+
+  it('.createCollection & dropCollection & .listCollections', function * () {
+    yield mongolass.createCollection('test1')
+    yield mongolass.createCollection('test2')
+    let colls = yield mongolass.listCollections()
+    colls = _.map(colls, 'name')
+    assert.ok(_.includes(colls, 'test1'))
+    assert.ok(_.includes(colls, 'test2'))
+
+    yield mongolass.dropCollection('test1')
+    yield mongolass.dropCollection('test2')
+    colls = yield mongolass.listCollections()
+    colls = _.map(colls, 'name')
+    assert.ok(!_.includes(colls, 'test1'))
+    assert.ok(!_.includes(colls, 'test2'))
+  })
+})

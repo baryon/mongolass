@@ -1,3 +1,62 @@
+## 4.3.3/2018-06-06
+
+- fix #34
+
+## 4.3.2/2018-06-05
+
+- fix `_formatQuery` error
+
+## 4.3.1/2018-05-25
+
+- fix $set & $setOnInsert no schema error
+
+## 4.3.0/2018-05-21
+
+- fix: `_formatSetOrSetOnInsert`
+
+## 4.2.1/2018-05-14
+
+- update deps
+- use AJS Types
+
+## 4.2.0/2018-04-13
+
+- add some Types
+
+## 4.1.4/2018-04-11
+
+- update `another-json-schema`
+
+## 4.1.3/2018-01-19
+
+- fix: test
+
+## 4.1.2/2018-01-19
+
+- fix: test
+
+## 4.1.1/2018-01-19
+
+- fix: beforeDeleteOne & beforeDeleteMany
+
+## 4.1.0/2018-01-09
+
+- upgrade another-json-schema@3.4.0
+- update operators will not check `default` & `required`
+
+## 4.0.0/2018-01-08
+
+- [feat] use eslint@standard
+- [feat] upgrade another-json-schema@3
+  - support `default`
+  - support `required`
+- [breaking change] use async/await, **deprecated** generatorFunction(plugin)
+- [breaking change] upgrade mongodb@3
+  - see [https://github.com/mongodb/node-mongodb-native/blob/HEAD/CHANGES_3.0.0.md](https://github.com/mongodb/node-mongodb-native/blob/HEAD/CHANGES_3.0.0.md)
+- [update] tweak codes
+- [update] update tests
+- [update] update README.md
+
 ## 3.1.5/2017-08-29
 
 - fix #27
